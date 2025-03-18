@@ -31,15 +31,41 @@ func main() {
 	defer conn.Close()
 	input := bufio.NewScanner(conn)
 	for input.Scan() {
-		request := input.Text()
-		fmt.Printf("> %s\n", request)
-		if strings.Contains(request, "GET") {
-			bytes, err := conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+		var startLine string
+		var headers string
+		var data string
+
+		request := strings.Split(input.Text(), "\r\n")
+		numRequestParts := len(request)
+		if numRequestParts > 0 {
+			startLine = request[0]
+		}
+		if numRequestParts > 1 {
+			headers = request[1]
+		}
+		if numRequestParts > 2 {
+			data = request[2]
+		}
+
+		fmt.Printf("> %s\n", startLine)
+		fmt.Printf("> %s\n", headers)
+		fmt.Printf("> %s\n", data)
+		startLineParts := strings.Fields(startLine)
+
+		method, requestTarget, protocol := startLineParts[0], startLineParts[1], startLineParts[2]
+		fmt.Printf("method: %s\n", method)
+		fmt.Printf("requestTarget: %s\n", requestTarget)
+		fmt.Printf("protocol: %s\n", protocol)
+		if requestTarget == "/" {
+			_, err := conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 			if err != nil {
 				fmt.Println("Error writing to connection", err)
 			}
-			fmt.Printf("Bytes written: %d", bytes)
-			break
+		} else {
+			_, err := conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+			if err != nil {
+				fmt.Println("Error writing to connection", err)
+			}
 		}
 	}
 }
